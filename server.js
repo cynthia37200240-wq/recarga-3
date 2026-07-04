@@ -311,9 +311,11 @@ app.post('/api/pix', async (req, res) => {
     return res.status(429).json({ erro: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' });
   }
 
-  const { valor: valorRaw, operadora, telefone: telRaw, tracking } = req.body || {};
+  const { valor: valorRaw, operadora, telefone: telRaw, tracking, nome, cpf } = req.body || {};
   const valor    = parseInt(valorRaw, 10);
   const telefone = String(telRaw || '').replace(/\D/g, '');
+  const nomeClean = String(nome || '').replace(/[<>]/g, '').trim();
+  const cpfClean  = String(cpf || '').replace(/\D/g, '');
 
   if (!Number.isInteger(valor) || valor <= 0 || !VALORES_PERMITIDOS.has(valor)) {
     return res.status(400).json({ erro: 'Valor de recarga inválido' });
@@ -324,18 +326,23 @@ app.post('/api/pix', async (req, res) => {
   if (telefone.length < 10 || telefone.length > 11) {
     return res.status(400).json({ erro: 'Telefone inválido' });
   }
+  if (!nomeClean || nomeClean.length < 3) {
+    return res.status(400).json({ erro: 'Informe seu nome completo.' });
+  }
+  if (cpfClean.length !== 11) {
+    return res.status(400).json({ erro: 'CPF inválido.' });
+  }
 
-  const cnpj  = gerarCNPJ();
   const email = `cliente.${crypto.randomBytes(8).toString('hex')}@recarga-online.site`;
 
   const payload = {
     amount:        valor * 100,
     paymentMethod: 'pix',
     customer: {
-      name:     'Recarga Online',
+      name:     nomeClean,
       email,
       phone:    '+55' + telefone,
-      document: { number: cnpj, type: 'cnpj' },
+      document: { number: cpfClean, type: 'cpf' },
     },
     items: [{ title: `Recarga ${operadora}`, quantity: 1, unitPrice: valor * 100, tangible: false }],
     pix:          { expiresInDays: 1 },
@@ -373,7 +380,7 @@ app.post('/api/pix', async (req, res) => {
     const txId = String(dados.id);
     salvarPedidoUtmifyLocal(txId, {
       createdAt: toUtmifyDate(new Date()),
-      customer: { name: 'Recarga Online', email, phone: '+55' + telefone, document: cnpj, country: 'BR', ip },
+      customer: { name: nomeClean, email, phone: '+55' + telefone, document: cpfClean, country: 'BR', ip },
       products: [{ id: operadora.toLowerCase(), name: `Recarga ${operadora}`, planId: null, planName: null, quantity: 1, priceInCents: valor * 100 }],
       trackingParameters: extrairTrackingParams(tracking),
       commission: { totalPriceInCents: valor * 100, gatewayFeeInCents: 0, userCommissionInCents: valor * 100, currency: 'BRL' },
