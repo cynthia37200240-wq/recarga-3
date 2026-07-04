@@ -204,17 +204,6 @@ function skalepayAuth() {
   return 'Basic ' + Buffer.from(SKALEPAY_SECRET_KEY + ':x').toString('base64');
 }
 
-function gerarCPF() {
-  let n;
-  do { n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)); }
-  while (new Set(n).size === 1);
-  for (let t = 9; t < 11; t++) {
-    let soma = 0;
-    for (let i = 0; i < t; i++) soma += n[i] * (t + 1 - i);
-    n.push((10 * soma) % 11 % 10);
-  }
-  return n.join('');
-}
 
 // Token derivado da chave secreta — usado para validar que o postback do webhook
 // realmente veio da URL que nós geramos (defesa contra chamadas forjadas ao endpoint).
@@ -323,17 +312,15 @@ app.post('/api/pix', async (req, res) => {
     return res.status(400).json({ erro: 'Telefone inválido' });
   }
 
-  const cpf   = gerarCPF();
   const email = `cliente.${crypto.randomBytes(8).toString('hex')}@recarga-online.site`;
 
   const payload = {
     amount:        valor * 100,
     paymentMethod: 'pix',
     customer: {
-      name:     'Cliente',
+      name:  'Cliente',
       email,
-      phone:    '+55' + telefone,
-      document: { number: cpf, type: 'cpf' },
+      phone: '+55' + telefone,
     },
     items: [{ title: `Recarga ${operadora}`, quantity: 1, unitPrice: valor * 100, tangible: false }],
     pix:          { expiresInDays: 1 },
@@ -371,7 +358,7 @@ app.post('/api/pix', async (req, res) => {
     const txId = String(dados.id);
     salvarPedidoUtmifyLocal(txId, {
       createdAt: toUtmifyDate(new Date()),
-      customer: { name: 'Cliente', email, phone: '+55' + telefone, document: cpf, country: 'BR', ip },
+      customer: { name: 'Cliente', email, phone: '+55' + telefone, document: '', country: 'BR', ip },
       products: [{ id: operadora.toLowerCase(), name: `Recarga ${operadora}`, planId: null, planName: null, quantity: 1, priceInCents: valor * 100 }],
       trackingParameters: extrairTrackingParams(tracking),
       commission: { totalPriceInCents: valor * 100, gatewayFeeInCents: 0, userCommissionInCents: valor * 100, currency: 'BRL' },
