@@ -19,25 +19,23 @@ if (!SKALEPAY_SECRET_KEY) {
 }
 
 const SKALEPAY_BASE_URL    = 'https://api.conta.skalepay.com.br/v1';
-const SITE_URL             = process.env.SITE_URL || 'https://recarga-online.site';
 const VALORES_PERMITIDOS   = new Set([15,17,18,20,25,30,35,40,45,50,55,60,100,200]);
 const OPERADORAS_PERMITIDAS = new Set(['Vivo','Claro','TIM','Algar','Correios']);
 
-// Integração UTMify (rastreamento de vendas para atribuição de campanhas/anúncios).
-// Sem UTMIFY_API_TOKEN configurado no .env, a integração fica desativada silenciosamente.
+// Domínios permitidos — separados por vírgula na variável SITE_URLS do Railway.
+// O primeiro da lista é o domínio principal (usado no postbackUrl do PIX).
+// Exemplo: https://recarga-online.site,https://recargafacil.com.br,https://recarga.app
+const ALLOWED_ORIGINS = (process.env.SITE_URLS || process.env.SITE_URL || 'https://recarga-online.site')
+  .split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
+
+const SITE_URL = ALLOWED_ORIGINS[0];
+
 const UTMIFY_API_TOKEN = process.env.UTMIFY_API_TOKEN || '';
 const UTMIFY_PLATFORM  = process.env.UTMIFY_PLATFORM || 'RecargaFacil';
 
-// Origens extras liberadas via env (ex.: "https://meusite2.com,https://meusite3.com")
-const ALLOWED_EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
-  .split(',').map(s => s.trim()).filter(Boolean);
-
 function isOriginAllowed(origin) {
   if (!origin) return false;
-  if (origin === SITE_URL) return true;
-  if (ALLOWED_EXTRA_ORIGINS.includes(origin)) return true;
-  // Libera qualquer subdomínio *.netlify.app (múltiplos front-ends Netlify usando a mesma API)
-  return /^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin);
+  return ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ''));
 }
 
 // ============================================================
