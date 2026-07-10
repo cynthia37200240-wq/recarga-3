@@ -297,6 +297,26 @@ async function enviarUtmify(txId, statusSkalepay) {
 }
 
 // ============================================================
+// LOGO PROTEGIDA — invisível para robôs
+// ============================================================
+const BOT_UA = /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|yandex|baidu|duckduck|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|discordbot|applebot|semrush|ahrefs|mj12bot|dotbot|python|curl|wget|axios|node-fetch/i;
+
+const TRANSPARENT_GIF = Buffer.from(
+  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'
+);
+
+app.get('/logo.gif', (req, res) => {
+  const ua = req.headers['user-agent'] || '';
+  if (BOT_UA.test(ua)) {
+    res.set('Content-Type', 'image/gif');
+    res.set('Cache-Control', 'no-store');
+    return res.send(TRANSPARENT_GIF);
+  }
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(__dirname, 'imagens', 'logo-gif.gif'));
+});
+
+// ============================================================
 // ROTAS API
 // ============================================================
 
