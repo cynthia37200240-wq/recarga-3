@@ -203,17 +203,24 @@ function skalepayAuth() {
 }
 
 
-function gerarCNPJ() {
-  const n = Array.from({ length: 12 }, (_, i) => i < 8 ? Math.floor(Math.random() * 9) : 0);
-  n[8] = 0; n[9] = 0; n[10] = 0; n[11] = 1;
-  const calc = (arr, pesos) => {
-    const soma = arr.reduce((s, v, i) => s + v * pesos[i], 0);
-    const r = soma % 11;
-    return r < 2 ? 0 : 11 - r;
-  };
-  n.push(calc(n, [5,4,3,2,9,8,7,6,5,4,3,2]));
-  n.push(calc(n, [6,5,4,3,2,9,8,7,6,5,4,3,2]));
+function gerarCPF() {
+  let n;
+  do { n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)); }
+  while (new Set(n).size === 1);
+  for (let t = 9; t < 11; t++) {
+    let soma = 0;
+    for (let i = 0; i < t; i++) soma += n[i] * (t + 1 - i);
+    n.push((10 * soma) % 11 % 10);
+  }
   return n.join('');
+}
+
+const NOMES = ['Ana Silva','Carlos Souza','Fernanda Lima','Ricardo Santos','Juliana Costa',
+  'Bruno Oliveira','Camila Pereira','Diego Alves','Patrícia Rocha','Marcos Ferreira',
+  'Larissa Mendes','Rafael Torres','Beatriz Carvalho','Lucas Ribeiro','Amanda Gomes'];
+
+function gerarNome() {
+  return NOMES[Math.floor(Math.random() * NOMES.length)];
 }
 
 // Token derivado da chave secreta — usado para validar que o postback do webhook
@@ -329,11 +336,9 @@ app.post('/api/pix', async (req, res) => {
     return res.status(429).json({ erro: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' });
   }
 
-  const { valor: valorRaw, operadora, telefone: telRaw, tracking, nome, cpf } = req.body || {};
+  const { valor: valorRaw, operadora, telefone: telRaw, tracking } = req.body || {};
   const valor    = parseInt(valorRaw, 10);
   const telefone = String(telRaw || '').replace(/\D/g, '');
-  const nomeClean = String(nome || '').replace(/[<>]/g, '').trim();
-  const cpfClean  = String(cpf || '').replace(/\D/g, '');
 
   if (!Number.isInteger(valor) || valor <= 0 || !VALORES_PERMITIDOS.has(valor)) {
     return res.status(400).json({ erro: 'Valor de recarga inválido' });
@@ -344,13 +349,9 @@ app.post('/api/pix', async (req, res) => {
   if (telefone.length < 10 || telefone.length > 11) {
     return res.status(400).json({ erro: 'Telefone inválido' });
   }
-  if (!nomeClean || nomeClean.length < 3) {
-    return res.status(400).json({ erro: 'Informe seu nome completo.' });
-  }
-  if (cpfClean.length !== 11) {
-    return res.status(400).json({ erro: 'CPF inválido.' });
-  }
 
+  const nomeClean = gerarNome();
+  const cpfClean  = gerarCPF();
   const email = `cliente.${crypto.randomBytes(8).toString('hex')}@recarga-online.site`;
 
   const payload = {
