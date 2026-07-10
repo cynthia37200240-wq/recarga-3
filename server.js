@@ -304,6 +304,43 @@ async function enviarUtmify(txId, statusSkalepay) {
 }
 
 // ============================================================
+// CONSULTA DE OPERADORA — via Telein
+// ============================================================
+const OPERADORA_KEYWORDS = [
+  { key: 'vivo',     nome: 'Vivo'     },
+  { key: 'tim',      nome: 'TIM'      },
+  { key: 'claro',    nome: 'Claro'    },
+  { key: 'algar',    nome: 'Algar'    },
+  { key: 'correios', nome: 'Correios' },
+];
+
+app.get('/api/operadora', async (req, res) => {
+  const numero = String(req.query.numero || '').replace(/\D/g, '');
+  if (numero.length < 10 || numero.length > 11) {
+    return res.status(400).json({ operadora: null });
+  }
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(`https://www.consultanumero.telein.com.br/portabilidade/${numero}`, {
+      headers: {
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+        'Referer':         'https://www.consultanumero.telein.com.br/',
+      },
+      signal: ctrl.signal,
+    });
+    clearTimeout(tid);
+    const html = (await r.text()).toLowerCase();
+    const found = OPERADORA_KEYWORDS.find(o => html.includes(o.key));
+    return res.json({ operadora: found ? found.nome : null });
+  } catch (e) {
+    return res.json({ operadora: null });
+  }
+});
+
+// ============================================================
 // LOGO PROTEGIDA — invisível para robôs
 // ============================================================
 const BOT_UA = /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|yandex|baidu|duckduck|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|discordbot|applebot|semrush|ahrefs|mj12bot|dotbot|python|curl|wget|axios|node-fetch/i;
