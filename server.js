@@ -31,7 +31,7 @@ const ALLOWED_ORIGINS = (process.env.SITE_URLS || process.env.SITE_URL || 'https
 const SITE_URL = ALLOWED_ORIGINS[0];
 
 const UTMIFY_API_TOKEN = process.env.UTMIFY_API_TOKEN || '';
-const UTMIFY_PLATFORM  = process.env.UTMIFY_PLATFORM || 'RecargaFacil';
+const UTMIFY_PLATFORM  = process.env.UTMIFY_PLATFORM || 'Plataforma';
 
 function isOriginAllowed(origin) {
   if (!origin) return false;
