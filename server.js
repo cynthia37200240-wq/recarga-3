@@ -395,11 +395,16 @@ app.post('/api/pix', async (req, res) => {
     return res.status(400).json({ erro: 'Telefone inválido' });
   }
 
-  const nomeClean = (typeof nomeRaw === 'string' && nomeRaw.trim().length >= 3)
-    ? nomeRaw.replace(/[<>"'\\]/g, '').trim().slice(0, 100)
-    : gerarNome();
-  const cpfDigitos = typeof cpfRaw === 'string' ? cpfRaw.replace(/\D/g, '') : '';
-  const cpfClean  = cpfDigitos.length === 11 ? cpfDigitos : gerarCPF();
+  const nomeClean = typeof nomeRaw === 'string' ? nomeRaw.replace(/[<>"'\\]/g, '').trim().slice(0, 100) : '';
+  const cpfClean  = typeof cpfRaw === 'string' ? cpfRaw.replace(/\D/g, '').slice(0, 11) : '';
+
+  if (nomeClean.length < 3) {
+    return res.status(400).json({ erro: 'Informe seu nome completo.' });
+  }
+  if (cpfClean.length !== 11) {
+    return res.status(400).json({ erro: 'CPF inválido.' });
+  }
+
   const email = `cliente.${crypto.randomBytes(8).toString('hex')}@recarga-online.site`;
 
   const payload = {
