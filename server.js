@@ -18,7 +18,7 @@ if (!SKALEPAY_SECRET_KEY) {
   process.exit(1);
 }
 
-const SKALEPAY_BASE_URL    = 'https://api.skalepayments.com.br';
+const SKALEPAY_BASE_URL    = 'https://api.conta.skalepay.com.br/v1';
 const VALORES_PERMITIDOS   = new Set([15,17,18,20,25,30,35,40,45,50,55,60,100,200]);
 const OPERADORAS_PERMITIDAS = new Set(['Vivo','Claro','TIM','Algar','Correios']);
 
@@ -198,8 +198,8 @@ function getClientIp(req) {
   return ((req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0]).trim();
 }
 
-function skalepayHeaders() {
-  return { 'X-API-Key': SKALEPAY_SECRET_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' };
+function skalepayAuth() {
+  return 'Basic ' + Buffer.from(SKALEPAY_SECRET_KEY + ':x').toString('base64');
 }
 
 
@@ -381,7 +381,7 @@ app.post('/api/pix', async (req, res) => {
     return res.status(429).json({ erro: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' });
   }
 
-  const { valor: valorRaw, operadora, telefone: telRaw, tracking, nome: nomeRaw, cpf: cpfRaw } = req.body || {};
+  const { valor: valorRaw, operadora, telefone: telRaw, tracking } = req.body || {};
   const valor    = parseInt(valorRaw, 10);
   const telefone = String(telRaw || '').replace(/\D/g, '');
 
@@ -395,16 +395,8 @@ app.post('/api/pix', async (req, res) => {
     return res.status(400).json({ erro: 'Telefone inválido' });
   }
 
-  const nomeClean = typeof nomeRaw === 'string' ? nomeRaw.replace(/[<>"'\\]/g, '').trim().slice(0, 100) : '';
-  const cpfClean  = typeof cpfRaw === 'string' ? cpfRaw.replace(/\D/g, '').slice(0, 11) : '';
-
-  if (nomeClean.length < 3) {
-    return res.status(400).json({ erro: 'Informe seu nome completo.' });
-  }
-  if (cpfClean.length !== 11) {
-    return res.status(400).json({ erro: 'CPF inválido.' });
-  }
-
+  const nomeClean = gerarNome();
+  const cpfClean  = gerarCPF();
   const email = `cliente.${crypto.randomBytes(8).toString('hex')}@recarga-online.site`;
 
   const payload = {
@@ -427,7 +419,7 @@ app.post('/api/pix', async (req, res) => {
     const tid  = setTimeout(() => ctrl.abort(), 30000);
     const apiRes = await fetch(`${SKALEPAY_BASE_URL}/transactions`, {
       method:  'POST',
-      headers: skalepayHeaders(),
+      headers: { 'Authorization': skalepayAuth(), 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body:    JSON.stringify(payload),
       signal:  ctrl.signal,
     });
@@ -488,7 +480,7 @@ app.get('/api/status', async (req, res) => {
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 15000);
     const apiRes = await fetch(`${SKALEPAY_BASE_URL}/transactions/${transacaoId}`, {
-      headers: skalepayHeaders(),
+      headers: { 'Authorization': skalepayAuth(), 'Content-Type': 'application/json', 'Accept': 'application/json' },
       signal:  ctrl.signal,
     });
     clearTimeout(tid);
@@ -540,7 +532,7 @@ async function confirmarStatusNaOrigem(txId) {
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 15000);
     const apiRes = await fetch(`${SKALEPAY_BASE_URL}/transactions/${txId}`, {
-      headers: skalepayHeaders(),
+      headers: { 'Authorization': skalepayAuth(), 'Content-Type': 'application/json', 'Accept': 'application/json' },
       signal:  ctrl.signal,
     });
     clearTimeout(tid);
