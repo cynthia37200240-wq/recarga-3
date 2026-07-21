@@ -3,14 +3,14 @@ const ASSETS = [
   '/',
   '/css/style.css?v=2',
   '/js/script.js?v=4',
-  '/imagens/brand.svg',
-  '/imagens/logo2.webp',
-  '/imagens/vivo.webp',
-  '/imagens/claro.webp',
-  '/imagens/tim.webp',
-  '/imagens/algar.webp',
-  '/imagens/correios.webp',
-  '/imagens/icon-tempo.png',
+  '/imagens/brand-c.svg',
+  '/imagens/logo2-c.webp',
+  '/imagens/vivo-c.webp',
+  '/imagens/claro-c.webp',
+  '/imagens/tim-c.webp',
+  '/imagens/algar-c.webp',
+  '/imagens/correios-c.webp',
+  '/imagens/icon-tempo-c.png',
 ];
 
 // Instala: pré-carrega todos os assets estáticos
